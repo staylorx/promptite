@@ -1,0 +1,17 @@
+name: promptite
+description: A sample command-line application with basic argument parsing for Claude Code and the like.
+version: 1.0.0
+repository: https://github.com/staylorx/promptite
+executable: promptite
+
+environment:
+  sdk: ^3.10.0
+
+# Add regular dependencies here.
+dependencies:
+  args: ^2.7.0
+  fpdart: ^1.2.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
