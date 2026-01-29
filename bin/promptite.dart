@@ -1,58 +1,115 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:args/args.dart';
 import 'package:promptite/src/promptite.dart';
 
 const String version = '1.0.0';
 
-void main(List<String> arguments) async {
-  final parser = ArgParser()
-    ..addOption('task', abbr: 't', help: 'Main task description (required)')
-    ..addOption('files', abbr: 'f', help: 'Comma-separated files to include')
-    ..addOption('context', abbr: 'c', help: 'Additional context/notes')
-    ..addFlag(
-      'strict',
-      abbr: 's',
-      defaultsTo: false,
-      help: 'Ultra-tight mode (minimal words)',
-    )
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Show this help and exit',
-    );
+void main(List<String> arguments) {
+  runZonedGuarded(
+    () async {
+      final parser = ArgParser()
+        ..addOption('task', abbr: 't', help: 'Main task description (required)')
+        ..addOption(
+          'files',
+          abbr: 'f',
+          help: 'Comma-separated files to include',
+        )
+        ..addOption('context', abbr: 'c', help: 'Additional context/notes')
+        ..addFlag(
+          'strict',
+          abbr: 's',
+          defaultsTo: false,
+          help: 'Ultra-tight mode (minimal words)',
+        )
+        ..addFlag(
+          'help',
+          abbr: 'h',
+          negatable: false,
+          help: 'Show this help and exit',
+        );
+      final processedArgs = _preprocessArguments(arguments);
+      final results = parser.parse(processedArgs);
 
-  final results = parser.parse(arguments);
+      if (processedArgs.isEmpty || (results['help'] as bool)) {
+        printUsage(parser);
+        exit(0);
+      }
 
-  if (arguments.isEmpty || (results['help'] as bool)) {
-    printUsage(parser);
-    exit(0);
-  }
+      final task = (results['task'] as String?) ?? '';
+      final files = (((results['files'] as String?) ?? ''))
+          .split(',')
+          .map((f) => f.trim())
+          .where((f) => f.isNotEmpty)
+          .toList();
+      final context = (results['context'] as String?) ?? '';
+      final strict = results['strict'] as bool;
 
-  final task = (results['task'] as String?) ?? '';
-  final files = (((results['files'] as String?) ?? ''))
-      .split(',')
-      .map((f) => f.trim())
-      .where((f) => f.isNotEmpty)
-      .toList();
-  final context = (results['context'] as String?) ?? '';
-  final strict = results['strict'] as bool;
+      if (task.isEmpty) {
+        stderr.writeln('Error: --task is required.');
+        printUsage(parser);
+        exit(1);
+      }
 
-  if (task.isEmpty) {
-    stderr.writeln('Error: --task is required.');
-    printUsage(parser);
-    exit(1);
-  }
-
-  final prompt = generateTightPrompt(
-    task: task,
-    files: files.isEmpty ? null : files,
-    context: context.isEmpty ? null : context,
-    strict: strict ? true : false,
+      final prompt = generateTightPrompt(
+        task: task,
+        files: files.isEmpty ? null : files,
+        context: context.isEmpty ? null : context,
+        strict: strict ? true : false,
+      );
+      stdout.writeln(prompt);
+      stdout.writeln(
+        '\n--- Token estimate: ~${estimateTokens(prompt)} tokens ---',
+      );
+    },
+    (error, stack) {
+      _showFriendlyError(error, stack);
+    },
   );
-  stdout.writeln(prompt);
-  stdout.writeln('\n--- Token estimate: ~${estimateTokens(prompt)} tokens ---');
+}
+
+List<String> _preprocessArguments(List<String> args) {
+  if (args.isEmpty) return args;
+  final typoMap = <String, String>{'--script': '--strict'};
+  final out = <String>[];
+  for (var arg in args) {
+    var replacedArg = arg;
+    for (final bad in typoMap.keys) {
+      if (arg == bad) {
+        stderr.writeln(
+          "Warning: '$arg' looks like a typo. Using '${typoMap[bad]}' instead.",
+        );
+        replacedArg = typoMap[bad]!;
+        break;
+      }
+      if (arg.startsWith('$bad=') || arg.startsWith('$bad:')) {
+        final suffix = arg.substring(bad.length);
+        stderr.writeln(
+          "Warning: '$bad' looks like a typo. Using '${typoMap[bad]}$suffix' instead.",
+        );
+        replacedArg = typoMap[bad]! + suffix;
+        break;
+      }
+    }
+    out.add(replacedArg);
+  }
+  return out;
+}
+
+void _showFriendlyError(Object error, StackTrace? stack) {
+  final isDebug = Platform.environment['DEBUG'] == '1';
+  if (isDebug) {
+    stderr.writeln(error);
+    if (stack != null) stderr.writeln(stack);
+  } else {
+    final msg = (error is Error || error is Exception)
+        ? error.toString()
+        : error.toString();
+    stderr.writeln('Error: ${msg.replaceAll(RegExp(r"\n"), ' ')}');
+    stderr.writeln('Run with DEBUG=1 to see the full stack trace.');
+  }
+  exit(1);
 }
 
 void printUsage(ArgParser argParser) {
