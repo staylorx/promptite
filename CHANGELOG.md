@@ -57,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bin/promptite.dart` — `_showFriendlyError`'s `(error is Error || error is Exception)` ternary had two
   identical arms, so the type test could never change the output. Removed; newline flattening now happens on
   the `toString()` call itself.
+- `.github/workflows/ci.yml` — the `windows` job failed on **every** run since the lane was added and never reached
+  its smoke step: a clean checkout has no `build/` and `dart compile exe` does not create its output directory, so
+  the compile step died with `Error: AOT compilation failed / PathNotFoundException: Cannot open file, path =
+  '…\build\promptite.exe'` (exit 254). It only ever passed on this machine because a stale `build/` was sitting
+  there. The step now creates the directory first, and `README.md` — which made the same "one command from a clean
+  checkout" claim — shows `mkdir -p build` before the compile. Both jobs are green from `4d2596d` on.
 - `bin/promptite.dart` — the `--script` -> `--strict` typo repair mangled an attached value. `--script=true` was
   rewritten to `--strict=true`, which `args` rejects with `FormatException: Flag option "--strict" should not be
   given a value`, and `--script:true` became `--strict:true`, which `args` silently drops (`:` is not a value
@@ -93,6 +99,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
+- GitHub Actions, 2026-09-26: the runs on `5b7abf1` and on `913d24a` were **red** — `verify` green, `windows` red at
+  "Compile the Windows binary" (`Smoke-test the binary` skipped). The run on `4d2596d` is green on both jobs, with
+  the windows lane's compile and smoke steps completing for the first time.
 - Windows TEST + BUILD run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0, `main` @
   `d7813c1`, measured in a **clean checkout of that commit** (a fresh `git worktree`, not the working tree): `dart
   pub get` OK (21 packages have newer versions incompatible with constraints); `dart format --output=none
@@ -103,9 +112,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   MS Windows 10.00 (console), x86-64` (6,324,224 bytes) and that artifact, run against all three `README.md`
   invocations, printed the expected prompt with exit 0 — exit 1 with a usage block when `--task` is missing, and
   the same output from a foreign working directory with the Dart SDK off `PATH`. Every tracked file is LF-only
-  (0 CRLF across 15 tracked files). One caveat found while measuring, not fixed here: the `windows` CI lane runs
-  `dart compile exe ... -o build/promptite.exe` on a clean checkout where `build/` does not exist, and the
-  compiler does not create the output directory — it only ever passed locally because a stale `build/` was there.
+  (0 CRLF across 15 tracked files). The one defect this pass found in the build lane is fixed in `4d2596d`: the
+  `windows` CI job could never compile on a clean checkout (no `build/` directory, which `dart compile exe` does not
+  create), so the run on `4d2596d` — not this one — is what first exercised the compiled artifact machine-side.
 - Windows build + audit run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0, `main` @
   `ee164ad`: `dart pub get` OK (21 packages have newer versions incompatible with constraints);
   `dart format --output=none --set-exit-if-changed .` 5 files, 0 changed, exit 0;

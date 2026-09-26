@@ -17,6 +17,9 @@ for a missing `--task`; run from a foreign working directory with the Dart SDK o
 Also measured: no `TODO`/`FIXME` anywhere; `///` doc comments in 2 of the 6 tracked `.dart` files
 (`bin/promptite.dart`, `test/cli_test.dart`); every tracked file is LF-only (0 CRLF across 15 tracked files);
 `dart_arch_test` absent from `dev_dependencies`.
+GitHub Actions on `main` @ `4d2596d`: `verify` **green** and the `windows` lane **green** (compile + README smoke
+test) — the first run in which that lane compiled at all; the runs on `5b7abf1` and `913d24a` were red there for
+the missing `build/` directory, see `CHANGELOG.md`.
 
 ## Open build / analysis problems
 
