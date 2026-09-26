@@ -73,28 +73,53 @@ List<String> _preprocessArguments(List<String> args) {
   if (args.isEmpty) return args;
   final typoMap = <String, String>{'--script': '--strict'};
   final out = <String>[];
-  for (var arg in args) {
+  for (final arg in args) {
     var replacedArg = arg;
     for (final bad in typoMap.keys) {
+      final good = typoMap[bad]!;
       if (arg == bad) {
         stderr.writeln(
-          "Warning: '$arg' looks like a typo. Using '${typoMap[bad]}' instead.",
+          "Warning: '$arg' looks like a typo. Using '$good' instead.",
         );
-        replacedArg = typoMap[bad]!;
+        replacedArg = good;
         break;
       }
       if (arg.startsWith('$bad=') || arg.startsWith('$bad:')) {
-        final suffix = arg.substring(bad.length);
-        stderr.writeln(
-          "Warning: '$bad' looks like a typo. Using '${typoMap[bad]}$suffix' instead.",
+        replacedArg = _repairFlagWithValue(
+          bad,
+          good,
+          arg.substring(bad.length + 1),
         );
-        replacedArg = typoMap[bad]! + suffix;
         break;
       }
     }
     out.add(replacedArg);
   }
   return out;
+}
+
+/// Repairs `--script=<value>` (or `--script:<value>`) into the flag form that
+/// actually works.
+///
+/// `--script` is a repaired typo for the `--strict` flag, so an attached value
+/// cannot be passed through verbatim: `args` rejects `--strict=true` as a flag
+/// that "should not be given a value", and it silently drops `--strict:true`
+/// (`:` is not a value separator for long options), which turns the typo repair
+/// into a no-op. The boolean value therefore selects the flag itself —
+/// `--strict` or `--no-strict`.
+String _repairFlagWithValue(String bad, String good, String value) {
+  if (value == 'true' || value == 'false') {
+    final repaired = value == 'true' ? good : '--no-strict';
+    stderr.writeln(
+      "Warning: '$bad' looks like a typo. Using '$repaired' instead.",
+    );
+    return repaired;
+  }
+  stderr.writeln(
+    "Error: '$bad' takes no value (got '$value'). Use '$good', '$good=true' "
+    "or '$good=false'.",
+  );
+  exit(1);
 }
 
 void _showFriendlyError(Object error, StackTrace? stack) {
