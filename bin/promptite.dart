@@ -103,10 +103,11 @@ void _showFriendlyError(Object error, StackTrace? stack) {
     stderr.writeln(error);
     if (stack != null) stderr.writeln(stack);
   } else {
-    final msg = (error is Error || error is Exception)
-        ? error.toString()
-        : error.toString();
-    stderr.writeln('Error: ${msg.replaceAll(RegExp(r"\n"), ' ')}');
+    // Every throwable's `toString()` is the message we show; there is no
+    // reason to branch on the type. Newlines are flattened so the one-line
+    // error stays readable in a terminal.
+    final msg = error.toString().replaceAll(RegExp(r"\n"), ' ');
+    stderr.writeln('Error: $msg');
     stderr.writeln('Run with DEBUG=1 to see the full stack trace.');
   }
   exit(1);
@@ -124,6 +125,11 @@ void printUsage(ArgParser argParser) {
   );
   stdout.writeln(
     '  dart run bin/promptite.dart -t "Add tests" -c "Focus on login flow" --strict',
+  );
+  stdout.writeln('');
+  stdout.writeln(
+    "Note: '--script' is accepted as a repaired typo for '--strict' (a warning "
+    'is printed to stderr).',
   );
   stdout.writeln('');
   stdout.writeln(argParser.usage);

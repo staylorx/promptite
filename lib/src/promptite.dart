@@ -49,7 +49,7 @@ Either<Failure, String> taskPrompt(String task, bool strict) {
 }
 
 Either<Failure, String> constraintsPrompt() {
-  return Right(
+  return const Right(
     '<constraints>\n'
     '  - Use only listed files\n'
     '  - No new dependencies\n'
@@ -68,7 +68,7 @@ Either<Failure, String> contextPrompt(String context, bool strict) {
 }
 
 Either<Failure, String> instructionsPrompt() {
-  return Right(
+  return const Right(
     '<instructions>\n'
     '  - Respond with ONLY code + 1-line explanation\n'
     '  - No thinking aloud\n'

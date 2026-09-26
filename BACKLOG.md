@@ -2,41 +2,31 @@
 
 Open/pending items only. Decisions made are recorded in `CHANGELOG.md`.
 
-Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, `main` @ 494a299, re-run 2026-09-25):
+Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, 2026-09-26 — full record in
+`CHANGELOG.md`):
 `dart pub get` OK — 21 packages have newer versions incompatible with constraints;
 `dart analyze --fatal-infos --fatal-warnings` -> "No issues found!" (exit 0);
 `dart test` -> 3/3 passed, "All tests passed!" (exit 0);
 `dart format --output=none --set-exit-if-changed .` -> 5 files, 0 changed (exit 0);
-`dart pub publish --dry-run` -> **exit 65**, "Package has 1 warning" (below).
+`dart pub publish --dry-run` -> **exit 0** from a committed tree, "Package has 0 warnings";
+`dart compile exe bin/promptite.dart -o build/promptite.exe` -> native windows_x64 console binary, exit 0;
+that binary run against all three `README.md` invocations -> the expected prompt on stdout, exit 0, and exit 1
+for a missing `--task`.
 Also measured: no `TODO`/`FIXME` anywhere; **zero `///` doc comments** in all 5 `.dart` files; every tracked
-file is LF-only (0 CRLF); no `.github/workflows`; `dart_arch_test` absent from `dev_dependencies`.
+file is LF-only (0 CRLF); `dart_arch_test` absent from `dev_dependencies`.
 
-## Build / analysis problems
+## Open build / analysis problems
 
-- [ ] `pubspec.yaml` — `executable:` is not a key recognized by pub; `dart pub publish --dry-run` warns
-      "did you mean executables?". Correct form is `executables:` (a map, `promptite: promptite`). Without it
-      the package ships no CLI executable.
-- [ ] `analysis_options.yaml` — legacy `analyzer.strong-mode.implicit-casts/implicit-dynamic` are obsolete
-      (Dart 3 replaced them with `language.strict-casts`/`strict-raw-types`, which are also already set);
-      dead config, silently ignored by the analyzer.
-- [ ] `analysis_options.yaml` — `prefer_const_constructors` is enabled as a linter rule AND set to `ignore`
-      under `errors:`; contradictory, one of the two should go.
-- [ ] No CI workflow — there is no `.github/workflows`; the bible (§2, §9 step 10) expects
-      `dart analyze --fatal-infos --fatal-warnings` + `dart test` to run on every PR.
-- [ ] No `AGENTS.md` — the bible (§1) expects a repo `AGENTS.md` recording that repo's deviations and local
-      wiring.
-- [ ] `bin/promptite.dart:106` — `_showFriendlyError` branches on `(error is Error || error is Exception)`
-      but both arms evaluate to `error.toString()`, so the ternary is dead: the type test never changes the
-      output.
-- [ ] `bin/promptite.dart:74` — `_preprocessArguments` silently rewrites `--script` to `--strict` and warns on
-      stderr; the correction map has exactly one entry and is documented nowhere (`README.md` and the `-h`
-      usage both omit it), so the repair is invisible to anyone reading the docs.
 - [ ] No `examples/` — `pubspec.yaml` targets pub.dev (no `publish_to: none`, `repository:` set) and the bible
-      §2 makes a real, CI-tested `examples/` a package deliverable; there is none, and nothing exercises the
-      three CLI invocations the README documents.
-- [ ] `pubspec.yaml:2` and `README.md:1` describe the same package twice in different words, and both still
-      call a released 1.0.0 tool a "sample command-line application" (bootstrap-template text); §1 D.R.Y.
-      keeps one copy.
+      §2 makes a real, CI-tested `examples/` a package deliverable; there is none. The three README invocations
+      are now executed by the Windows CI lane against the compiled binary, but no `test/` case exercises the
+      CLI's argument parsing end to end (`-t`/`-f`/`-c`/`--strict`/`--script` parsing, usage on no args, exit 1
+      on a missing task).
+- [ ] No `AGENTS.md` — the bible (§1) expects a repo `AGENTS.md` recording that repo's deviations and local
+      wiring. A write attempted on 2026-09-26 was refused by the writing agent's own guardrail (protected
+      agent-instruction file; operator approval did not arrive) and was deliberately not retried, so no
+      `AGENTS.md` exists and this file's deviation list remains the only record. Needs an operator-approved
+      write.
 
 ## Deviations from the dart-flutter-bible (docs/01–12)
 
@@ -49,8 +39,6 @@ Flagged for later review; not auto-fixed. The bible may itself be wrong on some 
   (lint-enforced, part of the clean gate).
 - Deviation: `analysis_options.yaml` — `todo: ignore`; the bible §2 maps `todo: error` so a TODO fails the
   build. No TODOs exist in the tree today, but the config contradicts doctrine.
-- Deviation: `analysis_options.yaml` — `prefer_const_constructors` is disabled under `errors:`; the bible §2
-  says never disable a rule in `analysis_options.yaml` (per-line ignores only).
 - Deviation: repo layout — a single flat package (`bin/`, `lib/`, `test/`) with no pub workspace and no
   domain/usecases/datasource split; the bible §3 Topology A/B prescribes a workspace with `*_domain`,
   `*_usecases` and >=2 datasource adapters. Arguably overkill for a dependency-free CLI with no persistence.
@@ -105,5 +93,11 @@ Flagged for later review; not auto-fixed. The bible may itself be wrong on some 
 - Deviation: `lib/src/promptite.dart:2` — a file under `src/` imports its own package barrel
   (`package:promptite/promptite.dart`) to reach `Failure`, reversing the §2/§3 direction in which the barrel
   re-exports `src/` while `src/` stays private.
-- Deviation: `README.md:7-13` — carries three runnable example invocations plus an `Examples:` block; §2 homes
-  example code in tests first and allows prose docs only a one-line command, and nothing tests these three.
+- Deviation: `README.md` — carries three runnable example invocations plus an `Examples:` block; §2 homes
+  example code in tests first and allows prose docs only a one-line command. Kept: those three flags are the
+  tool's whole interface, and the Windows CI lane now executes them against the compiled binary, so they
+  cannot rot silently.
+- Deviation: `README.md` — the "Building on Windows" section adds two more runnable commands in a bash fence
+  (`dart pub get`, `dart compile exe ...`). Kept on purpose: the Windows native build is the deliverable and
+  must be reproducible from the README, and §2's "smallest exception" (a one-line command) cannot express a
+  two-step build plus a verify step.

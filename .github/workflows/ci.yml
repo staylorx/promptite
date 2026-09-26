@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze
+        run: dart analyze --fatal-infos --fatal-warnings
+      - name: Test
+        run: dart test
+      - name: What pub.dev would see
+        run: dart pub publish --dry-run
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - name: Compile the Windows binary
+        run: dart compile exe bin/promptite.dart -o build/promptite.exe
+      - name: Smoke-test the binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXE=./build/promptite.exe
+
+          out=$("$EXE" -t "Refactor auth" -f "lib/auth.dart,lib/util.dart")
+          grep -q '<task>Refactor auth</task>' <<<"$out"
+          grep -q '<files>@lib/auth.dart, @lib/util.dart</files>' <<<"$out"
+          grep -q '<constraints>' <<<"$out"
+          grep -q 'Token estimate' <<<"$out"
+
+          out=$("$EXE" -t "Add tests" -c "Focus on login flow" --strict)
+          grep -q '<task>Add tests</task>' <<<"$out"
+          grep -q '<context>Focus on login flow</context>' <<<"$out"
+
+          "$EXE" -h >/dev/null
+          "$EXE" >/dev/null
+
+          if "$EXE" -f "a.dart" 2>/dev/null; then
+            echo "expected a non-zero exit when --task is missing" >&2
+            exit 1
+          fi
+
+          echo "Windows binary smoke test passed"

@@ -1,16 +1,8 @@
 include: package:lints/recommended.yaml
-analyzer:
-  strong-mode:
-    implicit-casts: false
-    implicit-dynamic: false
 
+analyzer:
   exclude:
     - build/**
-    # - bin/**
-    # - test/**
-    # - example/**
-    # - integration_test/**
-    # - tools/**
 
   language:
     strict-casts: true
@@ -21,7 +13,6 @@ analyzer:
     invalid_assignment: warning
     missing_return: error
     dead_code: info
-    prefer_const_constructors: ignore
 
 linter:
   rules:

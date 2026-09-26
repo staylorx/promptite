@@ -1,8 +1,9 @@
 name: promptite
-description: A sample command-line application with basic argument parsing for Claude Code and the like.
+description: A command-line prompt tightener for Claude Code and the like — assembles a token-lean task, file and context prompt and reports its token cost.
 version: 1.0.0
 repository: https://github.com/staylorx/promptite
-executable: promptite
+executables:
+  promptite: promptite
 
 environment:
   sdk: ^3.10.0
