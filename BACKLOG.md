@@ -2,14 +2,15 @@
 
 Open/pending items only. Decisions made are recorded in `CHANGELOG.md`.
 
-Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, 2026-09-26 — full record in
-`CHANGELOG.md`):
+Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, `main` @ `ee164ad`, re-run 2026-09-26 —
+full record in `CHANGELOG.md`):
 `dart pub get` OK — 21 packages have newer versions incompatible with constraints;
 `dart analyze --fatal-infos --fatal-warnings` -> "No issues found!" (exit 0);
 `dart test` -> 3/3 passed, "All tests passed!" (exit 0);
 `dart format --output=none --set-exit-if-changed .` -> 5 files, 0 changed (exit 0);
 `dart pub publish --dry-run` -> **exit 0** from a committed tree, "Package has 0 warnings";
-`dart compile exe bin/promptite.dart -o build/promptite.exe` -> native windows_x64 console binary, exit 0;
+`dart compile exe bin/promptite.dart -o build/promptite.exe` -> `PE32+ executable for MS Windows 10.00
+(console), x86-64`, 6.0 MB, exit 0;
 that binary run against all three `README.md` invocations -> the expected prompt on stdout, exit 0, and exit 1
 for a missing `--task`.
 Also measured: no `TODO`/`FIXME` anywhere; **zero `///` doc comments** in all 5 `.dart` files; every tracked

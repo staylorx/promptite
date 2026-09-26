@@ -79,16 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- Windows build + audit run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0:
-  `dart pub get` OK (21 packages have newer versions incompatible with constraints);
+- Windows build + audit run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0, `main` @
+  `ee164ad`: `dart pub get` OK (21 packages have newer versions incompatible with constraints);
   `dart format --output=none --set-exit-if-changed .` 5 files, 0 changed, exit 0;
   `dart analyze --fatal-infos --fatal-warnings` "No issues found!", exit 0; `dart test` 3/3, "All tests
-  passed!", exit 0; `dart compile exe bin/promptite.dart -o build/promptite.exe` produced a native windows_x64
-  console binary, exit 0, and that binary run against all three `README.md` invocations printed the expected
-  prompt with exit 0 — and exit 1 with a usage block when `--task` is missing. `dart pub publish --dry-run`
-  reaches "Package has 0 warnings" and **exit 0** from a committed tree; the number is re-confirmed after the
-  commit that carries this entry, because an uncommitted tree makes the same command exit 65 on "checked-in
-  files are modified in git".
+  passed!", exit 0; `dart compile exe bin/promptite.dart -o build/promptite.exe` produced a
+  `PE32+ executable for MS Windows 10.00 (console), x86-64` (6.0 MB), exit 0, and that binary run against all
+  three `README.md` invocations printed the expected prompt with exit 0 — and exit 1 with a usage block when
+  `--task` is missing. `dart pub publish --dry-run` reaches "Package has 0 warnings" and **exit 0** from a
+  committed tree; measured from the clean tree at `ee164ad`, not before the commit — an uncommitted tree makes
+  the same command exit 65 on "checked-in files are modified in git".
 - The 2026-09-25 audit note below is superseded where it disagrees: the publish dry run is clean, CI exists,
   and the `executable:` key is fixed. Its "no CI / exit 65" reading was correct for the tree it measured.
 
