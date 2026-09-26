@@ -27,35 +27,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
-      - name: Compile the Windows binary
+      # One source of truth for Windows validation: `tool/windows_smoke.sh`
+      # builds the binary from a clean tree and tests the artifact — the same
+      # lane a developer runs by hand, so CI and the local run cannot drift.
+      # It owns the build step (including the `mkdir -p build`, which a clean
+      # checkout needs because `dart compile exe` does NOT create its output
+      # directory while `build/` is gitignored — the compile otherwise dies with
+      # `PathNotFoundException: ... build\promptite.exe`; that is how this lane
+      # went red at 5b7abf1 while passing on any machine with a stale build/).
+      - name: Build and validate the Windows binary
         shell: bash
-        run: |
-          # A clean checkout has no `build/`, and `dart compile exe` does not
-          # create its output directory, so create it first.
-          mkdir -p build
-          dart compile exe bin/promptite.dart -o build/promptite.exe
-      - name: Smoke-test the binary
-        shell: bash
-        run: |
-          set -euo pipefail
-          EXE=./build/promptite.exe
-
-          out=$("$EXE" -t "Refactor auth" -f "lib/auth.dart,lib/util.dart")
-          grep -q '<task>Refactor auth</task>' <<<"$out"
-          grep -q '<files>@lib/auth.dart, @lib/util.dart</files>' <<<"$out"
-          grep -q '<constraints>' <<<"$out"
-          grep -q 'Token estimate' <<<"$out"
-
-          out=$("$EXE" -t "Add tests" -c "Focus on login flow" --strict)
-          grep -q '<task>Add tests</task>' <<<"$out"
-          grep -q '<context>Focus on login flow</context>' <<<"$out"
-
-          "$EXE" -h >/dev/null
-          "$EXE" >/dev/null
-
-          if "$EXE" -f "a.dart" 2>/dev/null; then
-            echo "expected a non-zero exit when --task is missing" >&2
-            exit 1
-          fi
-
-          echo "Windows binary smoke test passed"
+        run: bash tool/windows_smoke.sh

@@ -43,4 +43,86 @@ void main() {
       expect(cli.estimateTokens(longer), equals(45));
     });
   });
+
+  group('failure paths', () {
+    test('an empty task is a Left carrying its own message', () {
+      final either = cli.taskPrompt('   ', false);
+
+      expect(either.isLeft(), isTrue);
+      expect(either.getLeft().toNullable()?.message, equals('Task is empty'));
+    });
+
+    test('an empty context is a Left carrying its own message', () {
+      final either = cli.contextPrompt('', false);
+
+      expect(either.isLeft(), isTrue);
+      expect(
+        either.getLeft().toNullable()?.message,
+        equals('Context is empty'),
+      );
+    });
+
+    test('an empty file list is a Left carrying its own message', () {
+      final either = cli.filesPrompt(const []);
+
+      expect(either.isLeft(), isTrue);
+      expect(
+        either.getLeft().toNullable()?.message,
+        equals('File list is empty'),
+      );
+    });
+
+    test('angle brackets in a file name are a Left', () {
+      final either = cli.filesPrompt(const ['a<b>.dart']);
+
+      expect(either.isLeft(), isTrue);
+      expect(
+        either.getLeft().toNullable()?.message,
+        equals('Invalid characters in file names'),
+      );
+    });
+
+    test('the Either composing the prompt propagates the failure', () {
+      final either = cli.generateTightPromptEither(
+        task: 'Refactor auth',
+        files: const ['a<b>.dart'],
+      );
+
+      expect(either.isLeft(), isTrue);
+      expect(
+        either.getLeft().toNullable()?.message,
+        equals('Invalid characters in file names'),
+      );
+    });
+
+    test('the throwing form names the failure once, not twice', () {
+      // The CLI prints `error.toString()`, which prefixes `Exception: `; the
+      // message itself must not carry a second one.
+      expect(
+        () => cli.generateTightPrompt(
+          task: 'Refactor auth',
+          files: const ['a<b>.dart'],
+        ),
+        throwsA(
+          predicate(
+            (Object e) =>
+                e.toString().contains('Failed to generate prompt: Invalid') &&
+                !e.toString().contains('Exception: Invalid'),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('success paths kept green', () {
+    test('a valid file list is a Right carrying the files tag', () {
+      final either = cli.filesPrompt(const ['lib/a.dart', 'lib/b.dart']);
+
+      expect(either.isRight(), isTrue);
+      expect(
+        either.getRight().toNullable(),
+        equals('<files>@lib/a.dart, @lib/b.dart</files>'),
+      );
+    });
+  });
 }

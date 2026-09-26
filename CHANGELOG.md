@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `lib/src/cli_text.dart` — the CLI ring's text, split out of `bin/promptite.dart` so it is unit-testable:
+  `invocationLabel` names the copy of the tool that is running, `renderUsage` builds the banner, and
+  `userFacingMessage` renders one thrown object as the single line the user sees. It imports no `dart:io`;
+  `bin/` supplies the platform values.
+- `test/cli_test.dart` — 16 end-to-end tests that run the **compiled** binary (`dart compile exe` into a temp
+  directory in `setUpAll`) rather than `dart run`, so the artifact the README tells a Windows user to build is
+  the thing under test: both README invocations, the `--script`/`--script=<bool>` repair, the exit codes, the
+  stdout/stderr split, UTF-8 arguments, LF-only bytes, and a run from a foreign directory with the Dart SDK off
+  `PATH`.
+- `test/cli_text_test.dart` — unit tests for the banner and message rendering (invocation naming on both a
+  compiled binary and `dart run`, no `dart run` in a binary's banner, no doubled type prefix).
+- `test/promptite_test.dart` — `Left` coverage for the failure paths the suite never touched (empty task,
+  empty context, empty file list, angle brackets in a file name) plus the `Right` files tag.
+- `tool/windows_smoke.sh` — the Windows validation lane, and now the whole `windows` CI job. It rebuilds the
+  binary **from a tree with no `build/`** and then runs 26 checks over the artifact. Run it by hand with
+  `bash tool/windows_smoke.sh`.
 - Windows build target: `pubspec.yaml` declares `executables:` and a native Windows console binary is
   compiled with `dart compile exe`; `README.md` gained a "Building on Windows" section with the build commands
   and a verify step.
@@ -31,6 +47,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `.github/workflows/ci.yml` — the `windows` job's compile and smoke steps are replaced by a single
+  `bash tool/windows_smoke.sh` step, so the lane CI runs and the lane a developer runs cannot drift apart. The
+  script deletes `build/` before compiling, so the clean-checkout case the CI job tripped on is measured on every
+  run rather than only on a fresh clone.
+- `bin/promptite.dart` — imports the `package:promptite/promptite.dart` barrel instead of reaching into
+  `package:promptite/src/...`, which closes that item in `BACKLOG.md`; `printUsage` and `_showFriendlyError`
+  now delegate their text to `lib/src/cli_text.dart`.
+- `lib/src/promptite.dart` — `taskPrompt`, `contextPrompt` and `filesPrompt` construct their `Failure` values
+  directly instead of throwing inside `Either.tryCatch` and reading the message back out of
+  `Exception.toString()`. Same `Either` contract, one fewer indirection, and the messages are now the bare
+  text the user is meant to read.
+- `README.md` — the Windows build is three commands, not one: the `mkdir -p build` line is now documented as
+  required, with the failure it prevents; the `--script=<bool>` forms are documented; and the section points at
+  `tool/windows_smoke.sh` as the verify step instead of a bare `./build/promptite.exe` line.
 - `pubspec.yaml` — `executable: promptite`, a key pub does not recognize, replaced with the correct
   `executables:` map (`promptite: promptite`).
 - `pubspec.yaml` — description rewritten from the bootstrap-template "sample command-line application" text
@@ -52,6 +82,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `bin/promptite.dart` — the compiled binary's own usage banner told the user to run
+  `dart run bin/promptite.dart`, an invocation a Windows user of `promptite.exe` may not have an SDK for. The
+  banner now names the running copy (`promptite.exe <flags>`, examples included) and says `dart run …` only when
+  the script really is being run by the VM.
+- `bin/promptite.dart` — a failure report doubled the Dart type prefix:
+  `Error: Exception: Failed to generate prompt: Exception: Invalid characters in file names`. It now reads
+  `Error: Failed to generate prompt: Invalid characters in file names`.
 - `dart pub publish --dry-run` exited 65 on the unrecognized `executable:` pubspec key; with the correct
   `executables:` map the dry run reaches "Package has 0 warnings" and exit 0.
 - `bin/promptite.dart` — `_showFriendlyError`'s `(error is Error || error is Exception)` ternary had two
@@ -115,6 +152,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (0 CRLF across 15 tracked files). The one defect this pass found in the build lane is fixed in `4d2596d`: the
   `windows` CI job could never compile on a clean checkout (no `build/` directory, which `dart compile exe` does not
   create), so the run on `4d2596d` — not this one — is what first exercised the compiled artifact machine-side.
+- Windows build + test run, 2026-09-26, `main` @ `5b7abf1` plus the new smoke lane, all of it with `build/` absent:
+  `dart format --output=none --set-exit-if-changed .` 8 files, 0 changed, exit 0; `dart analyze --fatal-infos
+  --fatal-warnings` "No issues found!", exit 0; `dart test` **34/34**, "All tests passed!", exit 0 (10 in
+  `test/promptite_test.dart`, 9 in `test/cli_text_test.dart`, 15 end-to-end cases in `test/cli_test.dart` which
+  compile the binary themselves); `dart pub publish --dry-run` "Package has 0 warnings", exit 0 from a committed
+  tree; `dart compile exe bin/promptite.dart -o build/promptite.exe` produced a `PE32+ executable for MS
+  Windows 10.00 (console), x86-64` (6.0 MB), exit 0; and `bash tool/windows_smoke.sh` — which rebuilds that
+  artifact from a tree with no `build/` and is now the whole `windows` CI job — reports **0 failure(s)** across 26
+  checks, exit 0. Every tracked file is LF-only.
 - Windows build + audit run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0, `main` @
   `ee164ad`: `dart pub get` OK (21 packages have newer versions incompatible with constraints);
   `dart format --output=none --set-exit-if-changed .` 5 files, 0 changed, exit 0;

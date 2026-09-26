@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:args/args.dart';
-import 'package:promptite/src/promptite.dart';
+import 'package:promptite/promptite.dart';
 
 const String version = '1.0.0';
 
@@ -128,34 +128,26 @@ void _showFriendlyError(Object error, StackTrace? stack) {
     stderr.writeln(error);
     if (stack != null) stderr.writeln(stack);
   } else {
-    // Every throwable's `toString()` is the message we show; there is no
-    // reason to branch on the type. Newlines are flattened so the one-line
-    // error stays readable in a terminal.
-    final msg = error.toString().replaceAll(RegExp(r"\n"), ' ');
-    stderr.writeln('Error: $msg');
+    // Every throwable's message is what the user is shown; `userFacingMessage`
+    // owns the rendering rules (one line, no doubled type prefix).
+    stderr.writeln('Error: ${userFacingMessage(error)}');
     stderr.writeln('Run with DEBUG=1 to see the full stack trace.');
   }
   exit(1);
 }
 
+/// Prints the usage banner, naming the copy of the tool the user actually ran —
+/// a compiled `promptite.exe` must not be told to reach for `dart run`.
 void printUsage(ArgParser argParser) {
-  stdout.writeln('promptite version $version');
-  stdout.writeln('Usage: dart run bin/promptite.dart <flags>');
-  stdout.writeln('');
-  stdout.writeln('Note: -t / --task is required.');
-  stdout.writeln('');
-  stdout.writeln('Examples:');
   stdout.writeln(
-    '  dart run bin/promptite.dart -t "Refactor auth" -f "lib/auth.dart,lib/util.dart"',
+    renderUsage(
+      version: version,
+      invocation: invocationLabel(
+        scriptPath: Platform.script.toFilePath(),
+        executablePath: Platform.resolvedExecutable,
+        cwdPath: Directory.current.uri.toFilePath(),
+      ),
+      parserUsage: argParser.usage,
+    ),
   );
-  stdout.writeln(
-    '  dart run bin/promptite.dart -t "Add tests" -c "Focus on login flow" --strict',
-  );
-  stdout.writeln('');
-  stdout.writeln(
-    "Note: '--script' is accepted as a repaired typo for '--strict' (a warning "
-    'is printed to stderr).',
-  );
-  stdout.writeln('');
-  stdout.writeln(argParser.usage);
 }

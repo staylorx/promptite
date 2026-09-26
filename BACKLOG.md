@@ -2,24 +2,29 @@
 
 Open/pending items only. Decisions made are recorded in `CHANGELOG.md`.
 
-Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, `main` @ `d7813c1`, re-run 2026-09-26,
-measured in a clean checkout of that commit — full record in `CHANGELOG.md`):
+Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, `main` @ `5b7abf1`, re-run 2026-09-26 —
+full record in `CHANGELOG.md`):
 `dart pub get` OK — 21 packages have newer versions incompatible with constraints;
 `dart analyze --fatal-infos --fatal-warnings` -> "No issues found!" (exit 0);
-`dart test` -> 18/18 passed, "All tests passed!" (exit 0) — 3 in `test/promptite_test.dart` plus 15 end-to-end
-cases in `test/cli_test.dart`, which compile and run the binary itself;
-`dart format --output=none --set-exit-if-changed .` -> 6 files, 0 changed (exit 0);
+`dart test` -> 34/34 passed, "All tests passed!" (exit 0) — 10 in `test/promptite_test.dart`, 9 in
+`test/cli_text_test.dart` and 15 end-to-end cases in `test/cli_test.dart`, which compile and run the binary itself;
+`dart format --output=none --set-exit-if-changed .` -> 8 files, 0 changed (exit 0);
 `dart pub publish --dry-run` -> **exit 0** from a committed tree, "Package has 0 warnings";
-`dart compile exe bin/promptite.dart -o build/promptite.exe` -> `PE32+ executable for MS Windows 10.00
-(console), x86-64`, 6,324,224 bytes, exit 0;
-that binary run against all three `README.md` invocations -> the expected prompt on stdout, exit 0, and exit 1
-for a missing `--task`; run from a foreign working directory with the Dart SDK off `PATH` -> the same prompt.
-Also measured: no `TODO`/`FIXME` anywhere; `///` doc comments in 2 of the 6 tracked `.dart` files
-(`bin/promptite.dart`, `test/cli_test.dart`); every tracked file is LF-only (0 CRLF across 15 tracked files);
-`dart_arch_test` absent from `dev_dependencies`.
-GitHub Actions on `main` @ `4d2596d`: `verify` **green** and the `windows` lane **green** (compile + README smoke
-test) — the first run in which that lane compiled at all; the runs on `5b7abf1` and `913d24a` were red there for
-the missing `build/` directory, see `CHANGELOG.md`.
+`dart compile exe bin/promptite.dart -o build/promptite.exe` from a tree with **no `build/`** ->
+`PE32+ executable for MS Windows 10.00 (console), x86-64`, 6.0 MB, exit 0;
+`bash tool/windows_smoke.sh` -> 26 checks, **0 failure(s)** (exit 0) against that fresh binary, and that script is
+now the whole `windows` CI job.
+Also measured: the `windows` CI job failed on every run since the lane was added — at `5b7abf1` and `913d24a` with
+`AOT compilation failed / PathNotFoundException` on `build\promptite.exe`, because `dart compile exe` does not
+create its output directory and `build/` is gitignored, so a clean checkout has nowhere to write. `d7813c1`
+measured it and recorded it as a caveat it was not fixing; `4d2596d` created the directory before compiling, and the
+Actions run on `4d2596d` is the first in which that lane compiled at all (`verify` green, `windows` green).
+no `TODO`/`FIXME` anywhere; `///` doc comments in 3 of the 8 tracked `.dart` files (`bin/promptite.dart`,
+`lib/src/cli_text.dart`, `test/cli_test.dart`); every tracked file is LF-only (0 CRLF); `dart_arch_test` absent
+from `dev_dependencies`.
+Superseded readings, kept in `CHANGELOG.md`: `d7813c1` (18/18 tests, 6 formatted files, a 6,324,224-byte artifact)
+and `ee164ad` (3/3 tests, 5 formatted files — a "clean" verdict taken on a machine with a stale `build/` present,
+which is the same tree that failed the Windows CI job).
 
 ## Open build / analysis problems
 
@@ -29,7 +34,9 @@ the missing `build/` directory, see `CHANGELOG.md`.
       parsing, the usage banner on no args and `-h`, exit 1 on a missing `--task`, exit 1 on an unknown option,
       the `--script` repair — including the `=value`/`:value` forms, which writing those tests **fixed**, see
       `CHANGELOG.md` — plus UTF-8 passthrough, LF-only output and a run with the Dart SDK off `PATH`, all under
-      `dart test` against the compiled binary.
+      `dart test` against the compiled binary. The artifact itself is exercised end to end by
+      `tool/windows_smoke.sh` (26 checks), which is now the `windows` CI job. The missing `examples/` is what
+      remains.
 - [ ] No `AGENTS.md` — the bible (§1) expects a repo `AGENTS.md` recording that repo's deviations and local
       wiring. A write attempted on 2026-09-26 was refused by the writing agent's own guardrail (protected
       agent-instruction file; operator approval did not arrive) and was deliberately not retried, so no
@@ -56,8 +63,9 @@ Flagged for later review; not auto-fixed. The bible may itself be wrong on some 
   (`x.should.be(...)`) and forbids mixing the two.
 - Deviation: `test/promptite_test.dart` — test names are plain (`'includes task, files and context ...'`), not
   Given/When/Then; the bible §6 requires Given/When/Then names.
-- Deviation: `test/promptite_test.dart` — only happy paths are covered; the bible §6 requires both Either
-  sides. The `Left` paths (empty task/context, invalid file names) are untested.
+- Deviation: `test/promptite_test.dart` — only happy paths were covered; the bible §6 requires both Either
+  sides. **Closed 2026-09-26**: the `Left` paths (empty task, empty context, empty file list, angle brackets in
+  a file name) are now asserted by value, and `test/cli_test.dart` drives the CLI's own failure exits.
 - Deviation: `lib/src/failure.dart` — `abstract class Failure` is not `sealed` and its leaves are not
   `final`/`sealed`; the bible §4 requires a sealed per-layer hierarchy so a `switch` is exhaustive.
 - Deviation: `lib/src/failure.dart` — failures are one flat set (Task/Context/Files/Config/Cli/Api) with no
@@ -67,9 +75,11 @@ Flagged for later review; not auto-fixed. The bible may itself be wrong on some 
   objects **with value equality**, so two `TaskFailure('Task is empty')` values are not `==` and cannot be
   asserted or matched by value.
 - Deviation: `lib/src/failure.dart` — 7 classes in one file; the bible §3 requires one class per file.
-- Deviation: `lib/src/promptite.dart` — `Either.tryCatch` wraps hand-written validation (`throw Exception(...)`)
+- Deviation: `lib/src/promptite.dart` — `Either.tryCatch` wrapped hand-written validation (`throw Exception(...)`)
   rather than a third-party call; the bible §4 restricts `tryCatch` to adapter boundaries wrapping the
-  third-party call itself ("a line, not a zone").
+  third-party call itself ("a line, not a zone"). **Closed 2026-09-26**: the three `tryCatch` sites
+  (`taskPrompt`, `contextPrompt`, `filesPrompt`) now construct their `Failure` directly, and no `tryCatch`
+  remains in the file.
 - Deviation: `lib/src/promptite.dart` — `generateTightPrompt` throws via
   `.match((l) => throw Exception(...))`; the bible §1/§4 keep exceptions out of the core (`lib/`) — only the
   UI/CLI ring may throw. The CLI's error flow depends on that throw, so the seam is effectively exceptions but
@@ -94,10 +104,11 @@ Flagged for later review; not auto-fixed. The bible may itself be wrong on some 
 - Deviation: `lib/src/failure.dart` — `ConfigFailure` (:18), `CliFailure` (:22) and `ApiFailure` (:26) are
   never constructed anywhere in the tree (grep finds only their declarations), so half the hierarchy is dead;
   §4's failure set is meant to be the reachable failure space.
-- Deviation: `bin/promptite.dart:5` and `test/promptite_test.dart:4` — both import
-  `package:promptite/src/promptite.dart` directly instead of the `package:promptite/promptite.dart` barrel
-  that exists as the package's one public door (§2); `implementation_imports` stays silent because it only
-  covers cross-package imports, so the barrel is decorative for in-repo callers.
+- Deviation: `test/promptite_test.dart:4` — still imports `package:promptite/src/promptite.dart` directly
+  instead of the `package:promptite/promptite.dart` barrel that exists as the package's one public door (§2);
+  `implementation_imports` stays silent because it only covers cross-package imports, so the barrel is
+  decorative for in-repo callers. **Half closed 2026-09-26**: `bin/promptite.dart` now imports the barrel; the
+  test file is the remaining caller.
 - Deviation: `lib/src/promptite.dart:2` — a file under `src/` imports its own package barrel
   (`package:promptite/promptite.dart`) to reach `Failure`, reversing the §2/§3 direction in which the barrel
   re-exports `src/` while `src/` stays private.

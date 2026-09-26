@@ -41,11 +41,11 @@ String generateTightPrompt({
 }
 
 Either<Failure, String> taskPrompt(String task, bool strict) {
-  return Either<Failure, String>.tryCatch(() {
-    if (task.trim().isEmpty) throw Exception('Task is empty');
-    final content = strict ? task.split(' ').take(5).join(' ') : task;
-    return '<task>$content</task>';
-  }, (e, _) => TaskFailure(e.toString()));
+  if (task.trim().isEmpty) {
+    return Left(TaskFailure('Task is empty'));
+  }
+  final content = strict ? task.split(' ').take(5).join(' ') : task;
+  return Right('<task>$content</task>');
 }
 
 Either<Failure, String> constraintsPrompt() {
@@ -60,11 +60,11 @@ Either<Failure, String> constraintsPrompt() {
 }
 
 Either<Failure, String> contextPrompt(String context, bool strict) {
-  return Either<Failure, String>.tryCatch(() {
-    if (context.trim().isEmpty) throw Exception('Context is empty');
-    final content = strict ? context.split(' ').take(8).join(' ') : context;
-    return '<context>$content</context>';
-  }, (e, _) => ContextFailure(e.toString()));
+  if (context.trim().isEmpty) {
+    return Left(ContextFailure('Context is empty'));
+  }
+  final content = strict ? context.split(' ').take(8).join(' ') : context;
+  return Right('<context>$content</context>');
 }
 
 Either<Failure, String> instructionsPrompt() {
@@ -78,20 +78,15 @@ Either<Failure, String> instructionsPrompt() {
 }
 
 Either<Failure, String> filesPrompt(List<String> fileList) {
-  return Either<Failure, List<String>>.tryCatch(
-    () {
-      if (fileList.isEmpty) {
-        throw Exception('File list is empty');
-      }
-      for (final file in fileList) {
-        if (file.contains('<') || file.contains('>')) {
-          throw Exception('Invalid characters in file names');
-        }
-      }
-      return fileList;
-    },
-    (error, stackTrace) => FilesFailure(error.toString()),
-  ).map((files) => '<files>${files.map((f) => '@$f').join(', ')}</files>');
+  if (fileList.isEmpty) {
+    return Left(FilesFailure('File list is empty'));
+  }
+  for (final file in fileList) {
+    if (file.contains('<') || file.contains('>')) {
+      return Left(FilesFailure('Invalid characters in file names'));
+    }
+  }
+  return Right('<files>${fileList.map((f) => '@$f').join(', ')}</files>');
 }
 
 Either<Failure, int> estimateTokensEither(String prompt) {
