@@ -18,11 +18,12 @@ When run with no arguments or with `-h/--help`, the program prints usage and exi
 
 ## Building on Windows
 
-`pubspec.yaml` declares `executables:`, so a native Windows console binary is one
-command from a clean checkout:
+`pubspec.yaml` declares `executables:`, so a native Windows console binary is two
+commands from a clean checkout:
 
 ```bash
 dart pub get
+mkdir -p build   # a clean checkout has no build/, and `dart compile exe` will not create it
 dart compile exe bin/promptite.dart -o build/promptite.exe
 ```
 

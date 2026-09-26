@@ -28,7 +28,12 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
       - name: Compile the Windows binary
-        run: dart compile exe bin/promptite.dart -o build/promptite.exe
+        shell: bash
+        run: |
+          # A clean checkout has no `build/`, and `dart compile exe` does not
+          # create its output directory, so create it first.
+          mkdir -p build
+          dart compile exe bin/promptite.dart -o build/promptite.exe
       - name: Smoke-test the binary
         shell: bash
         run: |
