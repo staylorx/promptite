@@ -2,27 +2,31 @@
 
 Open/pending items only. Decisions made are recorded in `CHANGELOG.md`.
 
-Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, `main` @ `ee164ad`, re-run 2026-09-26 —
-full record in `CHANGELOG.md`):
+Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, `main` @ `d7813c1`, re-run 2026-09-26,
+measured in a clean checkout of that commit — full record in `CHANGELOG.md`):
 `dart pub get` OK — 21 packages have newer versions incompatible with constraints;
 `dart analyze --fatal-infos --fatal-warnings` -> "No issues found!" (exit 0);
-`dart test` -> 3/3 passed, "All tests passed!" (exit 0);
-`dart format --output=none --set-exit-if-changed .` -> 5 files, 0 changed (exit 0);
+`dart test` -> 18/18 passed, "All tests passed!" (exit 0) — 3 in `test/promptite_test.dart` plus 15 end-to-end
+cases in `test/cli_test.dart`, which compile and run the binary itself;
+`dart format --output=none --set-exit-if-changed .` -> 6 files, 0 changed (exit 0);
 `dart pub publish --dry-run` -> **exit 0** from a committed tree, "Package has 0 warnings";
 `dart compile exe bin/promptite.dart -o build/promptite.exe` -> `PE32+ executable for MS Windows 10.00
-(console), x86-64`, 6.0 MB, exit 0;
+(console), x86-64`, 6,324,224 bytes, exit 0;
 that binary run against all three `README.md` invocations -> the expected prompt on stdout, exit 0, and exit 1
-for a missing `--task`.
-Also measured: no `TODO`/`FIXME` anywhere; **zero `///` doc comments** in all 5 `.dart` files; every tracked
-file is LF-only (0 CRLF); `dart_arch_test` absent from `dev_dependencies`.
+for a missing `--task`; run from a foreign working directory with the Dart SDK off `PATH` -> the same prompt.
+Also measured: no `TODO`/`FIXME` anywhere; `///` doc comments in 2 of the 6 tracked `.dart` files
+(`bin/promptite.dart`, `test/cli_test.dart`); every tracked file is LF-only (0 CRLF across 15 tracked files);
+`dart_arch_test` absent from `dev_dependencies`.
 
 ## Open build / analysis problems
 
 - [ ] No `examples/` — `pubspec.yaml` targets pub.dev (no `publish_to: none`, `repository:` set) and the bible
-      §2 makes a real, CI-tested `examples/` a package deliverable; there is none. The three README invocations
-      are now executed by the Windows CI lane against the compiled binary, but no `test/` case exercises the
-      CLI's argument parsing end to end (`-t`/`-f`/`-c`/`--strict`/`--script` parsing, usage on no args, exit 1
-      on a missing task).
+      §2 makes a real, CI-tested `examples/` a package deliverable; there is none. The CLI-coverage half of this
+      item was closed on 2026-09-26 by `test/cli_test.dart` (15 cases, commit `d7813c1`): `-t`/`-f`/`-c`/`--strict`
+      parsing, the usage banner on no args and `-h`, exit 1 on a missing `--task`, exit 1 on an unknown option,
+      the `--script` repair — including the `=value`/`:value` forms, which writing those tests **fixed**, see
+      `CHANGELOG.md` — plus UTF-8 passthrough, LF-only output and a run with the Dart SDK off `PATH`, all under
+      `dart test` against the compiled binary.
 - [ ] No `AGENTS.md` — the bible (§1) expects a repo `AGENTS.md` recording that repo's deviations and local
       wiring. A write attempted on 2026-09-26 was refused by the writing agent's own guardrail (protected
       agent-instruction file; operator approval did not arrive) and was deliberately not retried, so no

@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dart analyze --fatal-infos --fatal-warnings`, `dart test` and `dart pub publish --dry-run`; the `windows`
   job compiles the binary on `windows-latest` and smoke-tests it against the three README invocations plus the
   missing-`--task` exit code. The bible §9 step 10 gate now runs on every pull request.
+- `test/cli_test.dart` — 15 end-to-end CLI tests that run the **compiled** binary (rebuilt with
+  `dart compile exe` in `setUpAll`, so a stale `.exe` cannot report old behaviour): both `README.md` invocations,
+  the usage banner and the exit-0/exit-1 paths, the `--script` typo repair, the byte-stream properties (UTF-8
+  passthrough, LF-only line endings) and a run from a foreign directory with no Dart SDK on `PATH`. `test/` now
+  exercises the CLI's argument parsing, which only the Windows CI lane's shell smoke test had ever touched.
 - `BACKLOG.md` recording open build/analysis issues and dart-flutter-bible deviations.
 - Completed `BACKLOG.md` in the 2026-09-25 audit pass with the findings the first pass missed: the direct
   `package:promptite/src/...` imports in `bin/promptite.dart:5`, `test/promptite_test.dart:4` and
@@ -52,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bin/promptite.dart` — `_showFriendlyError`'s `(error is Error || error is Exception)` ternary had two
   identical arms, so the type test could never change the output. Removed; newline flattening now happens on
   the `toString()` call itself.
+- `bin/promptite.dart` — the `--script` -> `--strict` typo repair mangled an attached value. `--script=true` was
+  rewritten to `--strict=true`, which `args` rejects with `FormatException: Flag option "--strict" should not be
+  given a value`, and `--script:true` became `--strict:true`, which `args` silently drops (`:` is not a value
+  separator for long options), so the repair warned and then did nothing. The value now selects the flag itself
+  (`--script=true` -> `--strict`, `--script=false` -> `--no-strict`, either separator), and a non-boolean value
+  exits 1 naming the accepted forms instead of a `FormatException`.
 - `bin/promptite.dart` — the `--script` -> `--strict` typo repair was invisible to anyone reading the docs;
   it is now stated in the `-h` usage and in `README.md`.
 
@@ -73,12 +84,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dart pub publish --dry-run` must be run from a **committed** tree. With uncommitted edits it exits 65 on
   "N checked-in files are modified in git", which is indistinguishable from a real packaging failure and was
   mistaken for one in the 2026-09-25 audit unless read closely.
+- The `--script` repair maps an attached value onto the *flag* rather than passing the value through, because
+  `args` flags take no value at all; `:` is accepted next to `=` for the repaired form because users write it and
+  the pre-existing code already claimed to handle it (silently, and wrongly).
 - An attempt to add `AGENTS.md` on 2026-09-26 was refused by the writing agent's guardrail (protected
   agent-instruction file, no operator approval) and deliberately not retried through another path. The item
   stays open in `BACKLOG.md`; the deviation list there remains the only record until an operator approves it.
 
 ### Notes
 
+- Windows TEST + BUILD run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0, `main` @
+  `d7813c1`, measured in a **clean checkout of that commit** (a fresh `git worktree`, not the working tree): `dart
+  pub get` OK (21 packages have newer versions incompatible with constraints); `dart format --output=none
+  --set-exit-if-changed .` 6 files, 0 changed, exit 0; `dart analyze --fatal-infos --fatal-warnings` "No issues
+  found!", exit 0; `dart test` 18/18, "All tests passed!", exit 0 (3 in `test/promptite_test.dart`, 15 end-to-end
+  cases in `test/cli_test.dart` which compile the binary themselves); `dart pub publish --dry-run` "Package has 0
+  warnings", exit 0; `dart compile exe bin/promptite.dart -o build/promptite.exe` produced a `PE32+ executable for
+  MS Windows 10.00 (console), x86-64` (6,324,224 bytes) and that artifact, run against all three `README.md`
+  invocations, printed the expected prompt with exit 0 — exit 1 with a usage block when `--task` is missing, and
+  the same output from a foreign working directory with the Dart SDK off `PATH`. Every tracked file is LF-only
+  (0 CRLF across 15 tracked files). One caveat found while measuring, not fixed here: the `windows` CI lane runs
+  `dart compile exe ... -o build/promptite.exe` on a clean checkout where `build/` does not exist, and the
+  compiler does not create the output directory — it only ever passed locally because a stale `build/` was there.
 - Windows build + audit run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0, `main` @
   `ee164ad`: `dart pub get` OK (21 packages have newer versions incompatible with constraints);
   `dart format --output=none --set-exit-if-changed .` 5 files, 0 changed, exit 0;
