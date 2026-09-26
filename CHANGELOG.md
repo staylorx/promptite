@@ -139,6 +139,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions, 2026-09-26: the runs on `5b7abf1` and on `913d24a` were **red** — `verify` green, `windows` red at
   "Compile the Windows binary" (`Smoke-test the binary` skipped). The run on `4d2596d` is green on both jobs, with
   the windows lane's compile and smoke steps completing for the first time.
+- GitHub Actions, 2026-09-26: run `36266611738` on `main` @ `2e913ea` is green on **both** jobs, and its `windows`
+  job is `tool/windows_smoke.sh` — the 26 checks in that script (clean-tree build, the README invocations, the
+  stdout/stderr split, the exit codes, the banner, LF-only output, the `--script` repair, and a run from a foreign
+  directory with the Dart SDK off `PATH`) are therefore machine-checked on every push, not only run by hand.
 - Windows TEST + BUILD run, 2026-09-26, Dart 3.13.1 (stable) windows_x64, package version 1.0.0, `main` @
   `d7813c1`, measured in a **clean checkout of that commit** (a fresh `git worktree`, not the working tree): `dart
   pub get` OK (21 packages have newer versions incompatible with constraints); `dart format --output=none

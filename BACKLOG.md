@@ -14,6 +14,8 @@ full record in `CHANGELOG.md`):
 `PE32+ executable for MS Windows 10.00 (console), x86-64`, 6.0 MB, exit 0;
 `bash tool/windows_smoke.sh` -> 26 checks, **0 failure(s)** (exit 0) against that fresh binary, and that script is
 now the whole `windows` CI job.
+GitHub Actions on `main` @ `2e913ea` (run `36266611738`): `verify` **green** and `windows` **green**, the latter
+running `tool/windows_smoke.sh` itself — so those 26 checks are machine-checked on every push, not only run by hand.
 Also measured: the `windows` CI job failed on every run since the lane was added — at `5b7abf1` and `913d24a` with
 `AOT compilation failed / PathNotFoundException` on `build\promptite.exe`, because `dart compile exe` does not
 create its output directory and `build/` is gitignored, so a clean checkout has nowhere to write. `d7813c1`
