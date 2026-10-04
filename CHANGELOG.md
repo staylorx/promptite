@@ -186,6 +186,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`"executable" is not a key recognized by pub - did you mean "executables"?`). No source file changed in
   this pass; every tracked file is LF-only.
 
+## [2026-09-26]
+
+### Added
+
+- Windows build + CI lane: the `promptite.exe` release artifact (compiled with `dart compile exe`) is gated by the
+  34-test `dart test` suite and exercised end to end by the W1 `windows` CI lane (`tool/windows_smoke.sh`) on
+  `windows-latest`. It is green on `main` @ `2e913ea` (Actions run `36266611738`), the first commit whose `windows`
+  job reached the smoke step.
+
 ## [1.0.0] - 2026-01-28
 
 ### Added
