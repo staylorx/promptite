@@ -2,32 +2,6 @@
 
 Open/pending items only. Decisions made are recorded in `CHANGELOG.md`.
 
-Build/audit evidence (Dart SDK 3.13.1 stable windows_x64, Windows lane, `main` @ `5b7abf1`, re-run 2026-09-26 —
-full record in `CHANGELOG.md`):
-`dart pub get` OK — 21 packages have newer versions incompatible with constraints;
-`dart analyze --fatal-infos --fatal-warnings` -> "No issues found!" (exit 0);
-`dart test` -> 34/34 passed, "All tests passed!" (exit 0) — 10 in `test/promptite_test.dart`, 9 in
-`test/cli_text_test.dart` and 15 end-to-end cases in `test/cli_test.dart`, which compile and run the binary itself;
-`dart format --output=none --set-exit-if-changed .` -> 8 files, 0 changed (exit 0);
-`dart pub publish --dry-run` -> **exit 0** from a committed tree, "Package has 0 warnings";
-`dart compile exe bin/promptite.dart -o build/promptite.exe` from a tree with **no `build/`** ->
-`PE32+ executable for MS Windows 10.00 (console), x86-64`, 6.0 MB, exit 0;
-`bash tool/windows_smoke.sh` -> 26 checks, **0 failure(s)** (exit 0) against that fresh binary, and that script is
-now the whole `windows` CI job.
-GitHub Actions on `main` @ `2e913ea` (run `36266611738`): `verify` **green** and `windows` **green**, the latter
-running `tool/windows_smoke.sh` itself — so those 26 checks are machine-checked on every push, not only run by hand.
-Also measured: the `windows` CI job failed on every run since the lane was added — at `5b7abf1` and `913d24a` with
-`AOT compilation failed / PathNotFoundException` on `build\promptite.exe`, because `dart compile exe` does not
-create its output directory and `build/` is gitignored, so a clean checkout has nowhere to write. `d7813c1`
-measured it and recorded it as a caveat it was not fixing; `4d2596d` created the directory before compiling, and the
-Actions run on `4d2596d` is the first in which that lane compiled at all (`verify` green, `windows` green).
-no `TODO`/`FIXME` anywhere; `///` doc comments in 3 of the 8 tracked `.dart` files (`bin/promptite.dart`,
-`lib/src/cli_text.dart`, `test/cli_test.dart`); every tracked file is LF-only (0 CRLF); `dart_arch_test` absent
-from `dev_dependencies`.
-Superseded readings, kept in `CHANGELOG.md`: `d7813c1` (18/18 tests, 6 formatted files, a 6,324,224-byte artifact)
-and `ee164ad` (3/3 tests, 5 formatted files — a "clean" verdict taken on a machine with a stale `build/` present,
-which is the same tree that failed the Windows CI job).
-
 ## Deviations from the dart-flutter-bible (docs/01–12)
 
 Flagged for later review; not auto-fixed. The bible may itself be wrong on some of these.
