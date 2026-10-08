@@ -4,8 +4,10 @@ import 'dart:async';
 import 'package:args/args.dart';
 import 'package:promptite/promptite.dart';
 
-const String version = '1.0.0';
-
+/// The CLI entrypoint: parses flags, builds the prompt via the library, writes
+/// it to stdout with a token estimate, and exits. On a failure it reports one
+/// line to stderr and exits 1; with no args or `-h` it prints usage and exits
+/// 0.
 void main(List<String> arguments) {
   runZonedGuarded(
     () async {
@@ -141,7 +143,7 @@ void _showFriendlyError(Object error, StackTrace? stack) {
 void printUsage(ArgParser argParser) {
   stdout.writeln(
     renderUsage(
-      version: version,
+      version: promptiteVersion,
       invocation: invocationLabel(
         scriptPath: Platform.script.toFilePath(),
         executablePath: Platform.resolvedExecutable,

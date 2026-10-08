@@ -1,3 +1,7 @@
+> **Error style:** the library returns fpdart `Either<Failure, String>` —
+> failures are values, in `lib/src/failure.dart`. The one throwing function is
+> `generateTightPrompt`, the seam the CLI sits on; nothing else throws.
+
 ## Usage
 
 Run the tool with `dart run` from the project root — or use the compiled Windows

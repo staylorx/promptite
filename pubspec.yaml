@@ -6,7 +6,7 @@ executables:
   promptite: promptite
 
 environment:
-  sdk: ^3.10.0
+  sdk: '>=3.10.0 <4.0.0'
 
 # Add regular dependencies here.
 dependencies:

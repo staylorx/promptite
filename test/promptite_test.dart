@@ -1,12 +1,12 @@
 import 'package:test/test.dart';
 
-// Import the package implementation for testing helper functions.
-import 'package:promptite/src/promptite.dart' as cli;
+import 'package:promptite/promptite.dart';
 
 void main() {
   group('generateTightPrompt', () {
-    test('includes task, files and context when provided', () {
-      final prompt = cli.generateTightPrompt(
+    test('given a task, files and context, when assembling, then all three are '
+        'included', () {
+      final prompt = generateTightPrompt(
         task: 'Refactor auth',
         files: ['lib/auth.dart', 'lib/util.dart'],
         context: 'Focus on login flow',
@@ -19,87 +19,107 @@ void main() {
       expect(prompt, contains('<constraints>'));
     });
 
-    test('strict mode truncates task words', () {
-      final prompt = cli.generateTightPrompt(
-        task: 'one two three four five six seven',
-        files: [],
-        context: '',
-        strict: true,
-      );
+    test(
+      'given strict mode, when the task has more than five words, then it is '
+      'truncated',
+      () {
+        final prompt = generateTightPrompt(
+          task: 'one two three four five six seven',
+          files: [],
+          context: '',
+          strict: true,
+        );
 
-      expect(prompt, contains('<task>one two three four five</task>'));
-      expect(prompt, isNot(contains('six')));
-    });
+        expect(prompt, contains('<task>one two three four five</task>'));
+        expect(prompt, isNot(contains('six')));
+      },
+    );
   });
 
   group('estimateTokens', () {
-    test('returns expected heuristic value', () {
-      final short = 'abc';
-      // (3 / 4).ceil() == 1 + 20 => 21
-      expect(cli.estimateTokens(short), equals(21));
+    test(
+      'given a prompt, then the heuristic returns a deterministic count',
+      () {
+        final short = 'abc';
+        // (3 / 4).ceil() == 1 + 20 => 21
+        expect(estimateTokens(short), equals(21));
 
-      final longer = 'a' * 100;
-      // (100 / 4) = 25 + 20 => 45
-      expect(cli.estimateTokens(longer), equals(45));
-    });
+        final longer = 'a' * 100;
+        // (100 / 4) = 25 + 20 => 45
+        expect(estimateTokens(longer), equals(45));
+      },
+    );
   });
 
-  group('failure paths', () {
-    test('an empty task is a Left carrying its own message', () {
-      final either = cli.taskPrompt('   ', false);
+  group('failure paths (Left)', () {
+    test(
+      'given a blank task, then taskPrompt is a Left with its own message',
+      () {
+        final either = taskPrompt(task: '   ', strict: false);
 
-      expect(either.isLeft(), isTrue);
-      expect(either.getLeft().toNullable()?.message, equals('Task is empty'));
-    });
+        expect(either.isLeft(), isTrue);
+        expect(either.getLeft().toNullable()?.message, equals('Task is empty'));
+      },
+    );
 
-    test('an empty context is a Left carrying its own message', () {
-      final either = cli.contextPrompt('', false);
+    test(
+      'given blank context, then contextPrompt is a Left with its own message',
+      () {
+        final either = contextPrompt(context: '', strict: false);
 
-      expect(either.isLeft(), isTrue);
+        expect(either.isLeft(), isTrue);
+        expect(
+          either.getLeft().toNullable()?.message,
+          equals('Context is empty'),
+        );
+      },
+    );
+
+    test(
+      'given an empty file list, then filesPrompt is a Left with its own message',
+      () {
+        final either = filesPrompt(fileList: const []);
+
+        expect(either.isLeft(), isTrue);
+        expect(
+          either.getLeft().toNullable()?.message,
+          equals('File list is empty'),
+        );
+      },
+    );
+
+    test(
+      'given an angle bracket in a file name, then filesPrompt is a Left',
+      () {
+        final either = filesPrompt(fileList: const ['a<b>.dart']);
+
+        expect(either.isLeft(), isTrue);
+        expect(
+          either.getLeft().toNullable()?.message,
+          equals('Invalid characters in file names'),
+        );
+      },
+    );
+
+    test(
+      'given a composing failure, then generateTightPromptEither propagates it',
+      () {
+        final either = generateTightPromptEither(
+          task: 'Refactor auth',
+          files: const ['a<b>.dart'],
+        );
+
+        expect(either.isLeft(), isTrue);
+        expect(
+          either.getLeft().toNullable()?.message,
+          equals('Invalid characters in file names'),
+        );
+      },
+    );
+
+    test('given a composing failure, then the throwing form names it once', () {
       expect(
-        either.getLeft().toNullable()?.message,
-        equals('Context is empty'),
-      );
-    });
-
-    test('an empty file list is a Left carrying its own message', () {
-      final either = cli.filesPrompt(const []);
-
-      expect(either.isLeft(), isTrue);
-      expect(
-        either.getLeft().toNullable()?.message,
-        equals('File list is empty'),
-      );
-    });
-
-    test('angle brackets in a file name are a Left', () {
-      final either = cli.filesPrompt(const ['a<b>.dart']);
-
-      expect(either.isLeft(), isTrue);
-      expect(
-        either.getLeft().toNullable()?.message,
-        equals('Invalid characters in file names'),
-      );
-    });
-
-    test('the Either composing the prompt propagates the failure', () {
-      final either = cli.generateTightPromptEither(
-        task: 'Refactor auth',
-        files: const ['a<b>.dart'],
-      );
-
-      expect(either.isLeft(), isTrue);
-      expect(
-        either.getLeft().toNullable()?.message,
-        equals('Invalid characters in file names'),
-      );
-    });
-
-    test('the throwing form names the failure once, not twice', () {
-      // The CLI prints `error.toString()`, which prefixes `Exception: `; the
-      // message itself must not carry a second one.
-      expect(
-        () => cli.generateTightPrompt(
+        () => generateTightPrompt(
           task: 'Refactor auth',
           files: const ['a<b>.dart'],
         ),
@@ -114,15 +134,38 @@ void main() {
     });
   });
 
-  group('success paths kept green', () {
-    test('a valid file list is a Right carrying the files tag', () {
-      final either = cli.filesPrompt(const ['lib/a.dart', 'lib/b.dart']);
+  group('failure value equality', () {
+    test(
+      'given the same leaf and message, then failures are equal by value',
+      () {
+        expect(
+          const TaskFailure('Task is empty'),
+          equals(const TaskFailure('Task is empty')),
+        );
+        // A different leaf with the same message is not equal: the runtime type
+        // is part of equality.
+        expect(
+          const ContextFailure('x'),
+          isNot(equals(const TaskFailure('x'))),
+        );
+      },
+    );
+  });
 
-      expect(either.isRight(), isTrue);
-      expect(
-        either.getRight().toNullable(),
-        equals('<files>@lib/a.dart, @lib/b.dart</files>'),
-      );
-    });
+  group('success paths (Right)', () {
+    test(
+      'given a valid file list, then filesPrompt is a Right with the files tag',
+      () {
+        final either = filesPrompt(
+          fileList: const ['lib/a.dart', 'lib/b.dart'],
+        );
+
+        expect(either.isRight(), isTrue);
+        expect(
+          either.getRight().toNullable(),
+          equals('<files>@lib/a.dart, @lib/b.dart</files>'),
+        );
+      },
+    );
   });
 }

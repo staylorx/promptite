@@ -55,8 +55,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   package error style (fpdart `Either` with a single throwing CLI seam) per the dart-flutter-bible §4. The
   earlier write had been refused by a writing-agent guardrail for want of operator approval; this one is
   operator-approved and lands both `BACKLOG.md` items it covers as closed.
+- `lib/src/version.dart` — a single runtime source for the package version (`promptiteVersion`), exported by
+  the barrel; the CLI banner reads it instead of a second hardcoded copy in `bin/`, closing the §1 D.R.Y.
+  deviation.
+- `lib/src/failure/{task,context,files}_failure.dart` — one `final` leaf per `part` file of the sealed
+  `Failure` hierarchy, so one-class-per-file and a sealed (exhaustive-`switch`) root coexist (§3/§4).
+- `test/promptite_test.dart` — a value-equality case locking in `Failure` `==`/`hashCode` (same leaf+message
+  equal; a different leaf does not) (§1/§4).
 
 ### Changed
+
+- `analysis_options.yaml` — enabled `public_member_api_docs` (the clean gate) and set `todo: error`, closing
+  the §2/§9 deviations; every public `lib/` declaration is now documented.
+- `pubspec.yaml` — SDK constraint spelled literally `'>=3.10.0 <4.0.0'` (semantically identical to `^3.10.0`)
+  to match the bible §2's exact form.
+- `lib/src/failure.dart` — rewritten as a `sealed` hierarchy with value equality; the `final` leaves sit one
+  per `part` file under `lib/src/failure/`, and the never-constructed `ConfigFailure`/`CliFailure`/`ApiFailure`
+  are removed so the set is the reachable failure space (§1/§3/§4). Removed public API:
+  `estimateTokensEither` (it returned a `Right` unconditionally) plus the three never-constructed failure
+  leaves.
+- `lib/src/promptite.dart` — public functions now take **named** params (§2) and carry `///` docs (§2);
+  `generateTightPromptEither` composes with fpdart **Do-notation** instead of nested `flatMap` (§4); and
+  `estimateTokens` computes directly instead of discarding a fake `Left` with `getOrElse` (§4). It imports
+  `src/failure.dart` directly rather than the package barrel, restoring the §2/§3 import direction.
+- `lib/promptite.dart` — the barrel now declares the package **error style** (fpdart `Either`, one throwing CLI
+  seam) per §4, referencing `generateTightPrompt`.
+- `README.md` — states the error style near the top per §4.
+- `bin/promptite.dart` — the banner version reads `promptiteVersion` from the barrel; `main` is documented.
+- `test/promptite_test.dart` — imports the package barrel instead of `src/` (§2) and uses Given/When/Then test
+  names (§6); the value-equality case is listed under Added.
 
 - `.github/workflows/ci.yml` — the `windows` job's compile and smoke steps are replaced by a single
   `bash tool/windows_smoke.sh` step, so the lane CI runs and the lane a developer runs cannot drift apart. The

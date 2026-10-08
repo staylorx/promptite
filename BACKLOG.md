@@ -4,77 +4,24 @@ Open/pending items only. Decisions made are recorded in `CHANGELOG.md`.
 
 ## Deviations from the dart-flutter-bible (docs/01–12)
 
-Flagged for later review; not auto-fixed. The bible may itself be wrong on some of these.
+Flagged for later review; not auto-fixed. The bible may itself be wrong on some of these. Resolved items are
+recorded (with the decision) in `CHANGELOG.md`, not here.
 
-- Deviation: `pubspec.yaml` — SDK constraint is `^3.10.0`; the bible §2 prescribes the literal
-  `'>=3.10.0 <4.0.0'`. Semantically identical (`^3.10.0` == `>=3.10.0 <4.0.0`); the bible may be
-  over-specifying exact string form.
-- Deviation: `analysis_options.yaml` — `public_member_api_docs` is not enabled; the bible §2/§9 requires it ON
-  (lint-enforced, part of the clean gate).
-- Deviation: `analysis_options.yaml` — `todo: ignore`; the bible §2 maps `todo: error` so a TODO fails the
-  build. No TODOs exist in the tree today, but the config contradicts doctrine.
 - Deviation: repo layout — a single flat package (`bin/`, `lib/`, `test/`) with no pub workspace and no
   domain/usecases/datasource split; the bible §3 Topology A/B prescribes a workspace with `*_domain`,
-  `*_usecases` and >=2 datasource adapters. Arguably overkill for a dependency-free CLI with no persistence.
+  `*_usecases` and >=2 datasource adapters. Kept: overkill for a dependency-free CLI with no persistence.
 - Deviation: `test/` — no `dart_arch_test` architecture/boundary test; the bible §2/§9 requires one running as
-  part of `dart test`.
+  part of `dart test`. Kept: with a single flat package there are no cross-package boundaries or layers for an
+  arch test to enforce.
 - Deviation: `test/promptite_test.dart` — uses `package:test` `expect()`; the bible §6 mandates `shouldly`
-  (`x.should.be(...)`) and forbids mixing the two.
-- Deviation: `test/promptite_test.dart` — test names are plain (`'includes task, files and context ...'`), not
-  Given/When/Then; the bible §6 requires Given/When/Then names.
-- Deviation: `test/promptite_test.dart` — only happy paths were covered; the bible §6 requires both Either
-  sides. **Closed 2026-09-26**: the `Left` paths (empty task, empty context, empty file list, angle brackets in
-  a file name) are now asserted by value, and `test/cli_test.dart` drives the CLI's own failure exits.
-- Deviation: `lib/src/failure.dart` — `abstract class Failure` is not `sealed` and its leaves are not
-  `final`/`sealed`; the bible §4 requires a sealed per-layer hierarchy so a `switch` is exhaustive.
-- Deviation: `lib/src/failure.dart` — failures are one flat set (Task/Context/Files/Config/Cli/Api) with no
-  per-layer split; the bible §4 wants a domain vs datasource split with mapping at the repository.
-- Deviation: `lib/src/failure.dart` — `Failure` declares `final String? message` (line 2: immutable, not
-  mutable) with a non-const constructor and no `Equatable`/`props`; the bible §1/§4 require immutable value
-  objects **with value equality**, so two `TaskFailure('Task is empty')` values are not `==` and cannot be
-  asserted or matched by value.
-- Deviation: `lib/src/failure.dart` — 7 classes in one file; the bible §3 requires one class per file.
-- Deviation: `lib/src/promptite.dart` — `Either.tryCatch` wrapped hand-written validation (`throw Exception(...)`)
-  rather than a third-party call; the bible §4 restricts `tryCatch` to adapter boundaries wrapping the
-  third-party call itself ("a line, not a zone"). **Closed 2026-09-26**: the three `tryCatch` sites
-  (`taskPrompt`, `contextPrompt`, `filesPrompt`) now construct their `Failure` directly, and no `tryCatch`
-  remains in the file.
-- Deviation: `lib/src/promptite.dart` — `generateTightPrompt` throws via
-  `.match((l) => throw Exception(...))`; the bible §1/§4 keep exceptions out of the core (`lib/`) — only the
-  UI/CLI ring may throw. The CLI's error flow depends on that throw, so the seam is effectively exceptions but
-  is never declared.
-- Deviation: `lib/promptite.dart` — the barrel carries no doc comment declaring the package error style; the
-  bible §4/§10 require the style named in the barrel, the README, and (on deviation) `AGENTS.md`.
-- Deviation: `README.md` — does not state the package error style near the top; the bible §4 requires it.
-- Deviation: `lib/src/promptite.dart` — public functions carry no `///` docs (1–2 lines, what+why); the bible
-  §2 requires terse docs on every declaration and public member.
-- Deviation: `lib/src/promptite.dart` — positional params `taskPrompt(String task, bool strict)`,
-  `contextPrompt(String context, bool strict)`, `filesPrompt(List<String> fileList)`; the bible §2 requires
-  named params (sole exceptions: a single positional `ref`/`message`).
-- Deviation: `bin/promptite.dart` — `const String version = '1.0.0'` duplicates `pubspec.yaml`
-  `version: 1.0.0`, a second source of truth; the bible §1 (D.R.Y.) wants exactly one.
-- Deviation: `lib/src/promptite.dart` — `generateTightPromptEither` composes with nested `flatMap`; the bible
-  §4 says prefer fpdart Do-notation for readability.
-- Deviation: `lib/src/promptite.dart` — `estimateTokensEither` returns `Right(...)` unconditionally (an
-  `Either` that can never be `Left`); the bible §4 uses the type only where the operation can fail.
-- Deviation: `lib/src/promptite.dart:102` — `estimateTokens` then discards that Left with
-  `getOrElse((_) => 0)`, so a genuine estimate of 0 tokens and a failed estimate are the same value; §4 keeps
-  failure a value the caller can see.
-- Deviation: `lib/src/failure.dart` — `ConfigFailure` (:18), `CliFailure` (:22) and `ApiFailure` (:26) are
-  never constructed anywhere in the tree (grep finds only their declarations), so half the hierarchy is dead;
-  §4's failure set is meant to be the reachable failure space.
-- Deviation: `test/promptite_test.dart:4` — still imports `package:promptite/src/promptite.dart` directly
-  instead of the `package:promptite/promptite.dart` barrel that exists as the package's one public door (§2);
-  `implementation_imports` stays silent because it only covers cross-package imports, so the barrel is
-  decorative for in-repo callers. **Half closed 2026-09-26**: `bin/promptite.dart` now imports the barrel; the
-  test file is the remaining caller.
-- Deviation: `lib/src/promptite.dart:2` — a file under `src/` imports its own package barrel
-  (`package:promptite/promptite.dart`) to reach `Failure`, reversing the §2/§3 direction in which the barrel
-  re-exports `src/` while `src/` stays private.
+  (`x.should.be(...)`). Kept: switching the assertion library adds a dev dependency and churn with no
+  functional difference for this package.
+- Deviation: `lib/src/failure.dart` — failures are one flat set with no per-layer split; the bible §4 wants a
+  domain vs datasource split with mapping at the repository. Kept: there is no repository/datasource layer in
+  this package to split between; the hierarchy is sealed so a `switch` is exhaustive.
 - Deviation: `README.md` — carries three runnable example invocations plus an `Examples:` block; §2 homes
-  example code in tests first and allows prose docs only a one-line command. Kept: those three flags are the
-  tool's whole interface, and the Windows CI lane now executes them against the compiled binary, so they
-  cannot rot silently.
+  example code in tests first. Kept: those three flags are the tool's whole interface, and the Windows CI
+  lane executes them against the compiled binary, so they cannot rot silently.
 - Deviation: `README.md` — the "Building on Windows" section adds two more runnable commands in a bash fence
   (`dart pub get`, `dart compile exe ...`). Kept on purpose: the Windows native build is the deliverable and
   must be reproducible from the README, and §2's "smallest exception" (a one-line command) cannot express a

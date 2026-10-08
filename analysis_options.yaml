@@ -9,7 +9,7 @@ analyzer:
     strict-raw-types: true
 
   errors:
-    todo: ignore
+    todo: error
     invalid_assignment: warning
     missing_return: error
     dead_code: info
@@ -22,3 +22,4 @@ linter:
     - close_sinks
     - avoid_print
     - prefer_const_constructors
+    - public_member_api_docs
