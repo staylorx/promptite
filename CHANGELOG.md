@@ -44,6 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--script` -> `--strict` rewrite; the never-constructed `ConfigFailure`/`CliFailure`/`ApiFailure` leaves;
   the missing `examples/` for a pub.dev-targeted package; and the duplicated package description in
   `README.md:1` vs `pubspec.yaml:2`.
+- `example/example.dart` — a runnable, CI-tested example of using the package/cli: it shows the library API
+  (fpdart `Either<Failure, String>`, the token estimate, handling a `Left` failure as a value) and, in its
+  header, the equivalent CLI invocation (`dart run bin/promptite.dart ...` and the compiled `promptite.exe`).
+  `test/examples_test.dart` runs it under `dart test`, so the example cannot rot into a file nobody executes.
+  The directory is `example/` (singular) because `dart pub publish --dry-run` enforces the pub layout
+  convention — plural `examples/` trips a "rename the top-level examples directory to example" warning — so
+  the package keeps its 0-warnings publish gate.
+- `AGENTS.md` — records this repo's deviations (referencing `BACKLOG.md`) and local wiring, and declares the
+  package error style (fpdart `Either` with a single throwing CLI seam) per the dart-flutter-bible §4. The
+  earlier write had been refused by a writing-agent guardrail for want of operator approval; this one is
+  operator-approved and lands both `BACKLOG.md` items it covers as closed.
 
 ### Changed
 

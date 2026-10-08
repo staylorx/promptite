@@ -37,13 +37,20 @@ which is the same tree that failed the Windows CI job).
       the `--script` repair — including the `=value`/`:value` forms, which writing those tests **fixed**, see
       `CHANGELOG.md` — plus UTF-8 passthrough, LF-only output and a run with the Dart SDK off `PATH`, all under
       `dart test` against the compiled binary. The artifact itself is exercised end to end by
-      `tool/windows_smoke.sh` (26 checks), which is now the `windows` CI job. The missing `examples/` is what
-      remains.
+      `tool/windows_smoke.sh` (26 checks), which is now the `windows` CI job. The missing `examples/` (now
+      `example/`, singular) was closed on 2026-10-08: `example/example.dart` demonstrates both the library
+      API (fpdart `Either<Failure, String>`, the token estimate, handling a `Left` failure) and the CLI
+      invocation in its header, and `test/examples_test.dart` runs it under `dart test`, so the example is
+      machine-checked on every push. The directory is singular because `dart pub publish --dry-run` enforces
+      the pub layout convention — plural `examples/` trips a rename warning, and this package keeps its
+      0-warnings publish gate.
 - [ ] No `AGENTS.md` — the bible (§1) expects a repo `AGENTS.md` recording that repo's deviations and local
       wiring. A write attempted on 2026-09-26 was refused by the writing agent's own guardrail (protected
       agent-instruction file; operator approval did not arrive) and was deliberately not retried, so no
       `AGENTS.md` exists and this file's deviation list remains the only record. Needs an operator-approved
-      write.
+      write. **Closed 2026-10-08**: `AGENTS.md` written (operator-approved via this pass), recording the
+      repo's deviations (referencing this file) and local wiring, and declaring the package error style
+      (fpdart `Either` with a single throwing CLI seam) per the bible §4.
 
 ## Deviations from the dart-flutter-bible (docs/01–12)
 
