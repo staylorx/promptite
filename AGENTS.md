@@ -20,6 +20,15 @@ and `BACKLOG.md`, it does not restate rules.
   deviations for a dependency-free CLI with no persistence, and each is tracked
   in `BACKLOG.md`. Do not "fix" them without recording the decision there.
 
+## Done means shipped (velocity)
+
+When the work is green gate — everything formatted, analyzed with zero
+diagnostics, covered, tested, CI'd clean, and good enough to report "done" —
+ship it yourself without asking: commit, push to `main`, and delete the branch.
+No waiting for a checkpoint prompt. Eventually we move to PRs; for now velocity
+is the default, and finishing a task always implies commit + push unless the
+user says otherwise.
+
 ## Error style (declared)
 
 The public API returns fpdart `Either<Failure, String>` (FP tuples) —
